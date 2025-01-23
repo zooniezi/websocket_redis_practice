@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Chat</title>
+    <!-- SockJS와 STOMP 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.2/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script>
+        let stompClient = null;
+        let nowRoom = null
+
+        // 서버에 WebSocket 연결
+        function connect() {
+            const socket = new SockJS('/ws'); // WebSocket 엔드포인트
+            stompClient = Stomp.over(socket);
+
+            // STOMP 연결
+            stompClient.connect({}, function () {
+                console.log('Connected to WebSocket');
+                // 메시지 구독
+                stompClient.subscribe('/sub/messages', function (message) {
+                    showMessage(message.body); // 수신 메시지 표시
+                });
+            });
+        }
+
+        // WebSocket 연결 해제
+        function disconnect() {
+            if (stompClient !== null) {
+                stompClient.disconnect();
+            }
+            console.log('Disconnected from WebSocket');
+        }
+
+        function joinRoom(roomName) {
+            if (nowRoom) {
+                stompClient.unsubscribe(nowRoom);
+            }
+            nowRoom = `/sub/room/${roomName}`;
+            stompClient.subscribe(nowRoom, function (message) {
+                showMessage(JSON.parse(message.body));
+
+            });
+            console.log(`You joined the room : ${roomName}`);
+
+        }
+        // 메시지 전송
+        function sendMessage() {
+            const content = document.getElementById("message").value;
+            const sender = document.getElementById("sender").value;
+            const message = { content: content, sender: sender };
+            const roomName = document.getElementById("roomName").value;
+
+            stompClient.send(`/pub/room/${roomName}`, {}, JSON.stringify(message))
+        }
+
+        // 수신 메시지 화면에 표시
+        function showMessage(message) {
+            const response = document.getElementById("response");
+            const p = document.createElement("p");
+            p.textContent = `${message.sender}: ${message.content}`;
+            response.appendChild(p);
+        }
+    </script>
+</head>
+<body onload="connect()">
+<h1>WebSocket Chat</h1>
+<input type="text" id="roomName" placeholder="Type a roomName">
+<button onclick="joinRoom(document.getElementById('roomName').value)">JOIN ROOM</button>
+<br><br>
+
+<input type="text" id="sender" placeholder="Your name">
+<input type="text" id="message" placeholder="Type a message">
+<button onclick="sendMessage()">Send Message</button>
+<div id="response"></div>
+</body>
+</html>
