@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.domain.ChatMessage;
 import com.example.demo.pubsub.RedisPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -13,7 +14,7 @@ public class ChatController {
     private final RedisPublisher redisPublisher;
 
     @MessageMapping("/sendMessage")
-    public void sendMessage(@Payload String message) {
+    public void sendMessage(@Payload ChatMessage message) {
         // Redis 채널로 메시지 발행
         redisPublisher.publish(message);
         System.out.println("Message Sent to Redis: " + message);
