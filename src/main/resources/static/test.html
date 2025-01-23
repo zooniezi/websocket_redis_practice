@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Test</title>
+</head>
+<body>
+<h1>WebSocket Chat Test</h1>
+
+<div>
+  <h3>Connection</h3>
+  <button id="connectBtn">Connect</button>
+  <button id="disconnectBtn" disabled>Disconnect</button>
+  <p id="connectionStatus">Status: Disconnected</p>
+</div>
+
+<div>
+  <h3>Send Message</h3>
+  <label for="chatroomId">Chat Room ID:</label>
+  <input type="text" id="chatroomId" placeholder="Enter Chat Room ID" />
+  <br><br>
+  <label for="senderId">Sender ID:</label>
+  <input type="text" id="senderId" placeholder="Enter Sender ID" />
+  <br><br>
+  <label for="message">Message:</label>
+  <input type="text" id="message" placeholder="Enter your message" />
+  <br><br>
+  <button id="sendMessageBtn" disabled>Send Message</button>
+</div>
+
+<div>
+  <h3>Messages</h3>
+  <ul id="messages"></ul>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script>
+  let stompClient = null;
+
+  const connectBtn = document.getElementById('connectBtn');
+  const disconnectBtn = document.getElementById('disconnectBtn');
+  const sendMessageBtn = document.getElementById('sendMessageBtn');
+  const connectionStatus = document.getElementById('connectionStatus');
+  const messagesList = document.getElementById('messages');
+
+  const chatroomIdInput = document.getElementById('chatroomId');
+  const senderIdInput = document.getElementById('senderId');
+  const messageInput = document.getElementById('message');
+
+  // Connect to WebSocket server
+  connectBtn.addEventListener('click', () => {
+    const socket = new SockJS('http://localhost:8080/ws'); // WebSocket 엔드포인트
+    stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, () => {
+      connectionStatus.textContent = 'Status: Connected';
+      connectBtn.disabled = true;
+      disconnectBtn.disabled = false;
+      sendMessageBtn.disabled = false;
+
+      // Subscribe to topic
+      stompClient.subscribe('/sub/messages', (msg) => {
+        const message = JSON.parse(msg.body);
+        const listItem = document.createElement('li');
+        listItem.textContent = `Room: ${message.chatroomId}, Sender: ${message.senderId}, Message: ${message.message}`;
+        messagesList.appendChild(listItem);
+      });
+    }, (error) => {
+      console.error('Connection error:', error);
+      connectionStatus.textContent = 'Status: Disconnected (Error)';
+    });
+  });
+
+  // Disconnect from WebSocket server
+  disconnectBtn.addEventListener('click', () => {
+    if (stompClient) {
+      stompClient.disconnect(() => {
+        connectionStatus.textContent = 'Status: Disconnected';
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
+        sendMessageBtn.disabled = true;
+      });
+    }
+  });
+
+  // Send a message to the server
+  sendMessageBtn.addEventListener('click', () => {
+    const chatroomId = chatroomIdInput.value.trim();
+    const senderId = senderIdInput.value.trim();
+    const message = messageInput.value.trim();
+
+    if (!chatroomId || !senderId || !message) {
+      alert('All fields are required!');
+      return;
+    }
+
+    const chatMessage = {
+      chatroomId: chatroomId,
+      senderId: senderId,
+      message: message
+    };
+
+    stompClient.send('/pub/sendMessage', {}, JSON.stringify(chatMessage));
+    messageInput.value = ''; // Clear input field
+  });
+</script>
+</body>
+</html>

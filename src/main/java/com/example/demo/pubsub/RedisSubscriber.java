@@ -15,6 +15,6 @@ public class RedisSubscriber {
     public void handleMessage(String message) {
         log.info("Redis에서 받은 메시지: {}", message);
         // 받은 메시지를 WebSocket 구독자들에게 전송
-        messagingTemplate.convertAndSend("/topic/messages", message);
+        messagingTemplate.convertAndSend("/sub/messages", message);
     }
 }

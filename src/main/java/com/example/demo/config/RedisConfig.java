@@ -17,14 +17,19 @@ public class RedisConfig {
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         // Redis 서버 연결 설정하기
-        return new LettuceConnectionFactory("localhost", 6380);
+        return new LettuceConnectionFactory("localhost", 6379);
     }
 
     @Bean
-    public RedisMessageListenerContainer redisContainer(RedisConnectionFactory connectionFactory) {
+    public RedisMessageListenerContainer redisContainer(
+            RedisConnectionFactory connectionFactory,
+            MessageListenerAdapter messageListenerAdapter,
+            ChannelTopic topic
+    ) {
         // Redis 메시지 리스너 컨테이너
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
+        container.addMessageListener(messageListenerAdapter, topic);
         return container;
     }
 
